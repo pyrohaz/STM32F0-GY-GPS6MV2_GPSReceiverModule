@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<history>
+   <processor signature="4.4.1 -mcpu=cortex-m0 -mthumb -g -nostartfiles -Map=GY-GPS6MV2.map -O0 --gc-sections -LC:\CooCox\CoIDE\configuration\ProgramData\GY-GPS6MV2 -TC:\CooCox\CoIDE\configuration\ProgramData\GY-GPS6MV2/arm-gcc-link.ld -g">
+      <target file="GY-GPS6MV2.elf" lastModified="148700b4c1c">
+         <source file="..\obj\stm32f0xx_rcc.o" lastModified="147ff50f92a"/>
+         <source file="..\obj\main.o" lastModified="148700b4897"/>
+         <source file="..\obj\startup_stm32f0xx.o" lastModified="14861f6b9a2"/>
+         <source file="..\obj\system_stm32f0xx_temp.o" lastModified="147ff50fc94"/>
+         <source file="..\obj\stm32f0xx_gpio.o" lastModified="147ff50fe7c"/>
+         <source file="..\obj\stm32f0xx_usart.o" lastModified="147ff50fff5"/>
+         <source file="..\obj\stm32f0xx_misc.o" lastModified="148510d82ed"/>
+      </target>
+   </processor>
+</history>
