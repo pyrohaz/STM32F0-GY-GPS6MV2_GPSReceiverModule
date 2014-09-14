@@ -1,26 +1,29 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <history>
-   <processor signature="arm-none-eabi-gcc noversion nomachine -mcpu=cortex-m0 -mthumb -Wall -ffunction-sections -g -O0 -c -DSTM32F051R8 -DSTM32F0XX_MD -DUSE_STDPERIPH_DRIVER -D__ASSEMBLY__ -I..\..\..\workspace\GY-GPS6MV2\cmsis_boot -I..\..\..\workspace -I..\..\..\workspace\GY-GPS6MV2 -I..\..\..\workspace\GY-GPS6MV2\cmsis_core -I..\..\..\workspace\GY-GPS6MV2\stm32_lib -I..\..\..\workspace\GY-GPS6MV2\stm32_lib\inc">
-      <target file="stm32f0xx_gpio.o" lastModified="147ff50fe7c">
+   <processor signature="arm-none-eabi-gcc noversion nomachine -mcpu=cortex-m0 -mthumb -Wall -ffunction-sections -g -O0 -c -DSTM32F051R8 -DSTM32F0XX_MD -DUSE_STDPERIPH_DRIVER -D__ASSEMBLY__ -I..\..\..\workspace\STM32F0-GY-GPS6MV2_GPSReceiverModule -I..\..\..\workspace\STM32F0-GY-GPS6MV2_GPSReceiverModule\GY-GPS6MV2\cmsis_boot -I..\..\..\workspace\STM32F0-GY-GPS6MV2_GPSReceiverModule\GY-GPS6MV2\stm32_lib\inc -I..\..\..\workspace\STM32F0-GY-GPS6MV2_GPSReceiverModule\GY-GPS6MV2 -I..\..\..\workspace\STM32F0-GY-GPS6MV2_GPSReceiverModule\GY-GPS6MV2\stm32_lib -I..\..\..\workspace\STM32F0-GY-GPS6MV2_GPSReceiverModule\GY-GPS6MV2\cmsis_core">
+      <target file="stm32f0xx_gpio.o" lastModified="14871a53019">
          <source file="..\..\..\stm32_lib\src\stm32f0xx_gpio.c" lastModified="147ff405655"/>
       </target>
-      <target file="stm32f0xx_misc.o" lastModified="148510d82ed">
+      <target file="stm32f0xx_misc.o" lastModified="14871a53304">
          <source file="..\..\..\stm32_lib\src\stm32f0xx_misc.c" lastModified="14851055519"/>
       </target>
-      <target file="stm32f0xx_rcc.o" lastModified="147ff50f92a">
+      <target file="stm32f0xx_rcc.o" lastModified="14871a52b34">
          <source file="..\..\..\stm32_lib\src\stm32f0xx_rcc.c" lastModified="147ff40567f"/>
       </target>
-      <target file="stm32f0xx_usart.o" lastModified="147ff50fff5">
+      <target file="stm32f0xx_usart.o" lastModified="14871a531b3">
          <source file="..\..\..\stm32_lib\src\stm32f0xx_usart.c" lastModified="147ff4055f8"/>
       </target>
-      <target file="system_stm32f0xx_temp.o" lastModified="147ff50fc94">
+      <target file="system_stm32f0xx_temp.o" lastModified="14871a52ea3">
          <source file="..\..\..\cmsis_boot\system_stm32f0xx_temp.c" lastModified="147ff4056c6"/>
       </target>
-      <target file="main.o" lastModified="148700b4897">
-         <source file="..\..\..\main.c" lastModified="148700af953"/>
+      <target file="main.o" lastModified="148763731b0">
+         <source file="..\..\..\main.c" lastModified="148763719fa"/>
       </target>
-      <target file="startup_stm32f0xx.o" lastModified="14861f6b9a2">
+      <target file="startup_stm32f0xx.o" lastModified="14871a52d36">
          <source file="..\..\..\cmsis_boot\startup\startup_stm32f0xx.s" lastModified="14861f6ae8f"/>
+      </target>
+      <target file="syscalls.o" lastModified="1487225eba4">
+         <source file="..\..\..\syscalls\syscalls.c" lastModified="148721e17d7"/>
       </target>
    </processor>
 </history>

@@ -2,6 +2,7 @@
 #include <stm32f0xx_rcc.h>
 #include <stm32f0xx_gpio.h>
 #include <stm32f0xx_misc.h>
+#include <math.h>
 
 /*
  * GY-GPS6MV2 GPS receiver module example program using
@@ -54,6 +55,11 @@
 
 #define G_USART USART2
 #define G_BRate 9600
+
+#define GMT
+
+#define LatIndex 14
+#define LongIndex 27
 
 //Peripheral typedefs
 GPIO_InitTypeDef G;
@@ -141,7 +147,7 @@ void CommaPositions(char *Sentence, int16_t *Pos, int16_t *Lengths){
 }
 
 //USART RX Interrupt variables
-volatile uint8_t GSent = 0, GGAWrite = 1, GLLWrite = 1, GSAWrite = 1;
+volatile uint8_t GSent = 0, GGAWrite = 1, GLLWrite = 1, GSAWrite = 1, SentenceWrite = 1;
 volatile uint8_t GSVWrite = 1, RMCWrite = 1, VTGWrite = 1;
 volatile uint8_t GGAGot = 0, GLLGot = 0, GSAGot = 0, GSVGot = 0;
 volatile uint8_t RMCGot = 0, VTGGot = 0;
@@ -184,33 +190,33 @@ void USART2_IRQHandler(void){
 
 			//Sentence has been received
 			//Write each sentence to sentence buffer
-			if(StrCmp(TmpBuf, "$GPGGA", 6)){
+			if(StrCmp(&TmpBuf[3], "GGA", 3)){
 				//If sentence is alright to be written to, i.e.
 				//the sentence isn't being written or read outside
 				//of the interrupt.
-				if(GGAWrite) StrCpyCh(TmpBuf, GGASnt, '\r');
+				if(GGAWrite) StrCpyCh(&TmpBuf[3], GGASnt, '\r');
 
 				//Current sentence has successfully written.
 				GGAGot = 1;
 			}
-			else if(StrCmp(TmpBuf, "$GPGLL", 6)){
-				if(GLLWrite) StrCpyCh(TmpBuf, GLLSnt, '\r');
+			else if(StrCmp(&TmpBuf[3], "GLL", 3)){
+				if(GLLWrite) StrCpyCh(&TmpBuf[3], GLLSnt, '\r');
 				GLLGot = 1;
 			}
-			else if(StrCmp(TmpBuf, "$GPGSA", 6)){
-				if(GSAWrite) StrCpyCh(TmpBuf, GSASnt, '\r');
+			else if(StrCmp(&TmpBuf[3], "GSA", 3)){
+				if(GSAWrite) StrCpyCh(&TmpBuf[3], GSASnt, '\r');
 				GSAGot = 1;
 			}
-			else if(StrCmp(TmpBuf, "$GPGSV", 6)){
-				if(GSVWrite) StrCpyCh(TmpBuf, GSVSnt, '\r');
+			else if(StrCmp(&TmpBuf[3], "GSV", 3)){
+				if(GSVWrite) StrCpyCh(&TmpBuf[3], GSVSnt, '\r');
 				GSVGot = 1;
 			}
-			else if(StrCmp(TmpBuf, "$GPRMC", 6)){
-				if(RMCWrite) StrCpyCh(TmpBuf, RMCSnt, '\r');
+			else if(StrCmp(&TmpBuf[3], "RMC", 3)){
+				if(RMCWrite) StrCpyCh(&TmpBuf[3], RMCSnt, '\r');
 				RMCGot = 1;
 			}
-			else if(StrCmp(TmpBuf, "$GPVTG", 6)){
-				if(VTGWrite) StrCpyCh(TmpBuf, VTGSnt, '\r');
+			else if(StrCmp(&TmpBuf[3], "VTG", 3)){
+				if(VTGWrite) StrCpyCh(&TmpBuf[3], VTGSnt, '\r');
 				VTGGot = 1;
 			}
 
@@ -228,6 +234,243 @@ void USART2_IRQHandler(void){
 			SentenceCnt++;
 		}
 	}
+}
+
+//A integer pow function, not really required as math.h is now included
+//but I like as little dependencies as possible! Returns a^x if x>1, if
+//x=1, returns a, if x = 0, returns 1, on the non existent off chance,
+//0 is returned though this will never happen as Pow is unsigned!
+int32_t FPow(int32_t Num, uint32_t Pow){
+	int32_t NumO = Num;
+	uint32_t Cnt;
+	if(Pow>1){
+		for(Cnt = 0; Cnt<Pow-1; Cnt++){
+			Num*=NumO;
+		}
+		return Num;
+	}
+
+	if(Pow==1) return Num;
+	if(Pow==0) return 1;
+	else return 0;
+}
+
+//Check the length of a number in base10 digits
+uint8_t CheckNumLength(int32_t Num){
+	uint8_t Len = 0, Cnt;
+
+	for(Cnt = 0; Cnt<10; Cnt++){
+		if(Num>=FPow(10, Cnt)){
+			Len = Cnt;
+		}
+		else{
+			Len = Cnt;
+			break;
+		}
+	}
+
+	return Len;
+}
+
+//Integer absolute value function
+int32_t Abs(int32_t Num){
+	if(Num<0) return -Num;
+	else return Num;
+}
+
+//Floating point absolute value function
+float FAbs(float Num){
+	if(Num<0) return -Num;
+	else return Num;
+}
+
+//Parse an integer number for length amount of characters, while
+//also checking if the number is negative or not. "Sentence" is a
+//pointer to a the first character of a string e.g. Str[] = "hi, 12345"
+//the value of &Str[4] should be passed to the function, otherwise the
+//text will be parsed and the number will be erroneous!
+int32_t ParseInt(char *Sentence, uint8_t Len){
+	int32_t Num = 0;
+	int8_t Cnt;
+
+	if(Sentence[0] == '-'){
+		for(Cnt = 0; Cnt<Len; Cnt++){
+			Num += (Sentence[Cnt+1]-'0')*FPow(10, (Len-1)-Cnt);
+		}
+
+		return -Num;
+	}
+	else{
+		for(Cnt = 0; Cnt<Len; Cnt++){
+			Num += (Sentence[Cnt]-'0')*FPow(10, (Len-1)-Cnt);
+		}
+
+		return Num;
+	}
+}
+
+//Parsing a floating point number! Remember here that floating point
+//numbers don't have infinite precision so this function only works
+//up to a prec value of ~7.
+float ParseFloat(char *Sentence, uint8_t Prec){
+	uint8_t Cnt, CChar = 0, CCnt = 0, NumBuf[10] = {0,0,0,0,0,0,0,0,0,0};
+	int32_t INumPre, INumPost;
+
+	while(CChar != '.'){
+		CChar = Sentence[CCnt];
+		NumBuf[CCnt] = CChar;
+		CCnt++;
+	}
+
+	INumPre = ParseInt(NumBuf, CCnt-1);
+
+	for(Cnt = CCnt; Cnt<(CCnt+Prec); Cnt++){
+		NumBuf[Cnt-CCnt] = Sentence[Cnt];
+	}
+
+	INumPost = ParseInt(NumBuf, Prec);
+
+	return (float)INumPre + (float)INumPost/(float)FPow(10, Prec);
+}
+
+//Parse any decimal number returning two integers. One of these integers will be
+//the digits before the decimal point, the other will be the digits after the
+//decimal point. This function has a special addition because if EndPoint is <10,
+//the parser will parse to a number amount of places (32bit integers only store
+//up to 10 digits anyway). If the EndPoint is more than 10, it will search
+//through the string looking for the EndPoint character. This is really useful for
+//parsing the GGA string as Lat and Long are sent as decimal values and all text
+//is delimited by commas.
+void ParseDec(char *Sentence, int32_t *PreDec, int32_t *PostDec, uint8_t EndPoint){
+	uint8_t Cnt, CChar = 0, CCnt = 0, CCVal, NumBuf[10] = {0,0,0,0,0,0,0,0,0,0}, Dir;
+	int32_t INumPre, INumPost;
+
+	while(CChar != '.'){
+		CChar = Sentence[CCnt];
+		NumBuf[CCnt] = CChar;
+		CCnt++;
+	}
+
+	INumPre = ParseInt(NumBuf, CCnt-1);
+
+	if(EndPoint<10){
+		for(Cnt = CCnt; Cnt<(CCnt+EndPoint); Cnt++){
+			NumBuf[Cnt-CCnt] = Sentence[Cnt];
+		}
+
+		INumPost = ParseInt(NumBuf, CCnt);
+	}
+	else{
+		CCVal = CCnt;
+		while(CChar != EndPoint){
+			CChar = Sentence[CCnt];
+			NumBuf[CCnt-CCVal] = CChar;
+			CCnt++;
+		}
+
+		INumPost = ParseInt(NumBuf, CCnt-CCVal-1);
+
+		if(Sentence[CCnt] == 'S' || Sentence[CCnt] == 'W'){
+			INumPre = -INumPre;
+		}
+	}
+
+	*PreDec = INumPre;
+
+	*PostDec = INumPost;
+}
+
+//Parse the current time from any of the sentences containing
+//time information! Time is normally presented in the form
+//hhmmss.sss. This only parses hhmmss. Make sure the string
+//sent to this function starts from the numbers! E.g. if you
+//want to parse the string Str[] = "hi 123456.00", make sure you
+//give the function &Str[3]. Time is returned to the array sent
+//to the function as Time. This array will contain 3 values,
+//Hours, Minutes and Seconds. As time is UTC and I live in UK,
+//I've added a GMT define which shifts the time by 1 hour. Time
+//is returned in 12 hour format.
+void ParseTime(char *Sntce, uint8_t *Time){
+#ifdef GMT
+	Time[0] = (1+(Sntce[1]-'0')+(Sntce[0]-'0')*10)%12;
+#else
+	Time[0] = (Sntce[1]-'0')+(Sntce[0]-'0')*10;
+#endif
+	Time[1] = (Sntce[3]-'0')+(Sntce[2]-'0')*10;
+	Time[2] = (Sntce[5]-'0')+(Sntce[4]-'0')*10;
+}
+
+//A parser to parse the latitude and longitude sent to the function
+//from NMEA style (ddmm.mmmmm) into degrees, minutes and seconds. To
+//make sure that floating point errors don't occur in data being
+//being received by the function, ValPre and ValPost are the two numbers
+//before and after the decimal point, in decimal lat/long format.
+void ParseLatLong(int32_t ValPre, int32_t ValPost, int32_t *Deg, int32_t *Min, float *Sec){
+	int32_t DegT, MinT;
+	float SecT;
+
+	DegT = ValPre/100;
+	MinT = ValPre-DegT*100;
+	SecT = (float)(ValPost*60)/(float)FPow(10, CheckNumLength(ValPost));
+
+	*Deg = DegT;
+	*Min = Abs(MinT);
+	*Sec = FAbs(SecT);
+}
+
+//A function that converts the deg/min/sec lat and long into their
+//decimal equivalent. This is the opposite of the above function!
+float DecLatLong(int32_t Deg, int32_t Min, float Sec){
+	float Num;
+
+	Num = (float)Abs(Deg) + (float)Min/60 + Sec/3600;
+
+	if(Deg<0) return -Num;
+	else return Num;
+}
+
+//Calculate the distance and bearing between two points in km. The
+//equations for this were from:
+//
+//http://www.ig.utexas.edu/outreach/googleearth/latlong.html
+//
+//These equations can be widely found everywhere so the above website
+//was just one of the first clicks on google! The source lat/long,
+//and destination lat/long are taken by the function and the distance
+//and bearing between the two points is returned. This function
+//normally uses the Haversine method though commented out is the
+//spherical law of cosines method - deemed less accurate at times.
+//The bearing value is returned in degrees, relative to North.
+void DistanceBetweenPoints(float LatSrc, float LongSrc, float LatDst, float LongDst, float *Distance, float *Bearing){
+	float DeltaLong, DeltaLat, A, C, TBearing;
+	//Radius in km
+	const float R = 6371.0f;
+
+	LatSrc = LatSrc*M_PI/180.0f;
+	LongSrc = LongSrc*M_PI/180.0f;
+
+	LatDst = LatDst*M_PI/180.0f;
+	LongDst = LongDst*M_PI/180.0f;
+
+	DeltaLong = LongDst - LongSrc;
+	DeltaLat = LatDst - LatSrc;
+
+	A = sinf(DeltaLat*0.5f)*sinf(DeltaLat*0.5f) + cosf(LatSrc)*cosf(LatDst)*sinf(DeltaLong*0.5f)*sinf(DeltaLong*0.5f);
+	C = 2*atan2f(sqrtf(A), sqrtf(1-A));
+
+	*Distance = R*C;
+
+	//*Distance = acosf(sinf(LatSrc)*sinf(LatDst)+cosf(LatSrc)*cosf(LatDst)*cosf(DeltaLong))*R;
+
+	//Relative to north!
+	TBearing = 360.0f + 180.0f*atan2f(sinf(DeltaLong)*cosf(LatDst), cosf(LatSrc)*sinf(LatDst)-sinf(LatSrc)*cosf(LatDst)*cosf(DeltaLong))/M_PI;
+
+	//The floating point modulo equivalent! Successively subtract
+	//360 until the value is less than 360.
+	while(TBearing>360.0f){
+		TBearing -= 360.0f;
+	}
+	*Bearing = TBearing;
 }
 
 int main(void)
@@ -272,7 +515,27 @@ int main(void)
 	N.NVIC_IRQChannelPriority = 0;
 	NVIC_Init(&N);
 
-	uint8_t Cnt;
+	//Variables to hold various data, a lot!
+	uint8_t Time[3], Cnt;
+
+	//Lat/Long pre and post decimal point
+	int32_t LatPre, LatPost;
+	int32_t LongPre, LongPost;
+
+	//Lat/Long degrees, minutes and seconds
+	int32_t LatDeg, LatMin;
+	int32_t LongDeg, LongMin;
+	float LatSec, LongSec;
+
+	//Lat/Long decimal values
+	float LatDec, LongDec;
+
+	//Distance and bearing variables
+	float Dst, Bea;
+
+	//An example destination
+	const float LatDst = 53.465868f;
+	const float LongDst = -2.348242f;
 
 	while(1)
 	{
@@ -282,7 +545,29 @@ int main(void)
 		//Tell the interrupt that it can't write to the sentence buffers
 		GSAWrite = GLLWrite = GGAWrite = GSVWrite = RMCWrite = VTGWrite = 0;
 
-		//Debugging breakpoint - Read the sentences here!
+		//Parse the current time of fix from the GLL Sentence
+		ParseTime(&GLLSnt[31], Time);
+
+		//Parse the latitude and longitude, into NMEA decimal form from the GGA
+		//sentence. Numbers are parsed up to the ',' character (see, that was
+		//useful really!).
+		ParseDec(&GGASnt[LatIndex], &LatPre, &LatPost, ',');
+		ParseDec(&GGASnt[LongIndex], &LongPre, &LongPost, ',');
+
+		//Parse the degrees, minutes and seconds from the NMEA decimal form
+		ParseLatLong(LatPre, LatPost, &LatDeg, &LatMin, &LatSec);
+		ParseLatLong(LongPre, LongPost, &LongDeg, &LongMin, &LongSec);
+
+		//Convert the deg/min/sec notation into standard decimal notation
+		LatDec = DecLatLong(LatDeg, LatMin, LatSec);
+		LongDec = DecLatLong(LongDeg, LongMin, LongSec);
+
+		//Calculate the distance from our current position to the destination
+		//defined above! Store the distance and bearing in the variables Dst
+		//and Bea.
+		DistanceBetweenPoints(LatDec, LongDec, LatDst, LongDst, &Dst, &Bea);
+
+		//Debugging breakpoint - Read the data here!
 
 		//Clear the sentence buffers, ready to receive new sentences
 		for(Cnt = 0; Cnt<200; Cnt++){
